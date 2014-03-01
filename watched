@@ -1,0 +1,117 @@
+#!/usr/bin/python
+
+import argparse
+import datetime
+import os
+import re
+import readline
+import sys
+import subprocess
+
+from sqlalchemy import event, create_engine
+from sqlalchemy import Column, DateTime, Integer, ForeignKey, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
+
+status_file = '.watched.txt'
+parser      = argparse.ArgumentParser()
+Base        = declarative_base()
+
+def re_fn(expr, item):
+    reg = re.compile(expr, re.I)
+    return reg.search(item) is not None
+
+def _fk_pragma_and_regex_on_connect(dbapi_con, con_record):
+    dbapi_con.create_function('regexp', 2, re_fn)
+    dbapi_con.execute('pragma foreign_keys=ON')
+
+engine = create_engine('%s:///%s' % ('sqlite', '%s/.watched.sqlite' % os.getenv('HOME')))
+event.listen(engine, 'connect', _fk_pragma_and_regex_on_connect)
+Session = sessionmaker(bind=engine, autocommit=True, expire_on_commit=False)
+session = Session()
+
+class Watched(Base):
+    __tablename__ = 'watched'
+
+    id = Column(Integer, primary_key=True)
+    filename = Column(String)
+    first = Column(DateTime)
+    last = Column(DateTime)
+    count = Column(Integer)
+
+    def __repr__(self):
+        return ("%s | first_time:[%s] last_time:[%s] count:[%s]"
+                 % (self.filename, self.first.ctime(), self.last.ctime(), self.count))
+
+def save(movie):
+    now = datetime.datetime.now()
+    ss = check(movie)
+    if ss:
+        ss.last = now
+       # print(ss.count 
+       # print(dir(ss.count))
+        ss.count = 1 + int(ss.count)
+        ss.save()
+        return
+
+    #_movie = Watched(filename=movie, first=now, last=now, count=1)
+    session.begin(subtransactions=True)
+    try:
+        session.add(Watched(filename=movie, first=now, last=now, count=1))
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print("Problem %s updating data, try again" % e.__repr__())
+
+
+def show():
+    result = session.query(Watched).all()
+    if result: [ print(line) for line in result ]
+
+def find(regex):
+    result = session.query(Watched).filter(Watched.filename.op('regexp')(regex)).all()
+    if result: [ print(line) for line in result ]
+
+def last():
+    print(session.query(Watched).order_by(Watched.last).one())
+
+def check(movie):
+    return session.query(Watched.filename).filter(Watched.filename==movie).first()
+
+Base.metadata.create_all(engine)
+
+if __name__ == '__main__':
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("movie", type=str, default="no_movie", help="movie to be played by mplayer", nargs='?')
+    group.add_argument("-f", "--find", help="list watched files based on a given regex", type=str)
+    group.add_argument("-s", "--show", help="show all watched files", action="store_true")
+    group.add_argument("-l", "--last", help="show last file watched", action="store_true")
+
+    args = parser.parse_args()
+
+    try:
+        if args.find:
+            find(args.find)
+        elif args.show:
+            show()
+        elif args.last:
+            last()
+        elif args.movie == "no_movie":
+            parser.print_help()
+        else:
+            movie = os.path.basename(args.movie)
+            if check(movie):
+                print("You already whatched this file")
+                ipt = input("Do you want to watch again? (y|n) ")
+                if ipt != "y":
+                    sys.exit(0)
+
+            save(args.movie)
+            subprocess.check_call('mplayer "%s"' % movie, shell=True)
+    except NoResultFound:
+        pass
+
+    sys.exit(0)
+
