@@ -26,7 +26,9 @@ def _fk_pragma_and_regex_on_connect(dbapi_con, con_record):
     dbapi_con.create_function('regexp', 2, re_fn)
     dbapi_con.execute('pragma foreign_keys=ON')
 
-engine = create_engine('%s:///%s' % ('sqlite', '%s/.watched.sqlite' % os.getenv('HOME')))
+engine = create_engine(
+    '%s:///%s' % ('sqlite', '%s/.watched.sqlite' % os.getenv('HOME'))
+)
 event.listen(engine, 'connect', _fk_pragma_and_regex_on_connect)
 Session = sessionmaker(bind=engine, autocommit=True, expire_on_commit=False)
 session = Session()
@@ -42,23 +44,23 @@ class Watched(Base):
 
     def __repr__(self):
         return ("%s | first_time:[%s] last_time:[%s] count:[%s]"
-                 % (self.filename, self.first.ctime(), self.last.ctime(), self.count))
+                 % (self.filename, self.first.ctime(), 
+                    self.last.ctime(), self.count))
 
 def save(movie):
     now = datetime.datetime.now()
+    session.begin(subtransactions=True)
     ss = check(movie)
     if ss:
         ss.last = now
-       # print(ss.count 
-       # print(dir(ss.count))
-        ss.count = 1 + int(ss.count)
-        ss.save()
+        ss.count += 1
+        session.commit()
         return
 
-    #_movie = Watched(filename=movie, first=now, last=now, count=1)
-    session.begin(subtransactions=True)
     try:
-        session.add(Watched(filename=movie, first=now, last=now, count=1))
+        session.add(
+            Watched(filename=movie, first=now, last=now, count=1)
+        )
         session.commit()
     except Exception as e:
         session.rollback()
@@ -69,25 +71,37 @@ def show():
     result = session.query(Watched).all()
     if result: [ print(line) for line in result ]
 
+
 def find(regex):
-    result = session.query(Watched).filter(Watched.filename.op('regexp')(regex)).all()
+    result = session.query(Watched).filter(
+        Watched.filename.op('regexp')(regex)
+    ).all()
     if result: [ print(line) for line in result ]
+
 
 def last():
     print(session.query(Watched).order_by(Watched.last).one())
 
+
 def check(movie):
-    return session.query(Watched.filename).filter(Watched.filename==movie).first()
+    return session.query(Watched).filter(
+        Watched.filename==movie
+    ).first()
+
 
 Base.metadata.create_all(engine)
 
 if __name__ == '__main__':
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("movie", type=str, default="no_movie", help="movie to be played by mplayer", nargs='?')
-    group.add_argument("-f", "--find", help="list watched files based on a given regex", type=str)
-    group.add_argument("-s", "--show", help="show all watched files", action="store_true")
-    group.add_argument("-l", "--last", help="show last file watched", action="store_true")
+    group.add_argument("movie", type=str, default="no_movie", 
+                       help="movie to be played by mplayer", nargs='?')
+    group.add_argument("-f", "--find", type=str, 
+                       help="list watched files based on a given regex")
+    group.add_argument("-s", "--show", action="store_true", 
+                       helptype="show all watched files")
+    group.add_argument("-l", "--last", action="store_true", 
+                       help="show last file watched")
 
     args = parser.parse_args()
 
