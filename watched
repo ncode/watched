@@ -116,7 +116,7 @@ if __name__ == '__main__':
     group.add_argument("-f", "--find", type=str, 
                        help="list watched files based on a given regex")
     group.add_argument("-s", "--show", action="store_true", 
-                       helptype="show all watched files")
+                       help="show all watched files")
     group.add_argument("-l", "--last", action="store_true", 
                        help="show last file watched")
 
