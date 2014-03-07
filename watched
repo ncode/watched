@@ -31,7 +31,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
-status_file = '.watched.txt'
 parser      = argparse.ArgumentParser()
 Base        = declarative_base()
 
