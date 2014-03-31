@@ -26,15 +26,6 @@ import sys
 import subprocess
 
 from sqlalchemy import event, create_engine
-    id       = Column(Integer, primary_key=True)
-    filename = Column(String)
-    first    = Column(DateTime)
-    last     = Column(DateTime)
-    count    = Column(Integer)
-
-    def __repr__(self):
-        return ("%s | first_time:[%s] last_time:[%s] count:[%s]"
-                 % (self.filenam
 from sqlalchemy import Column, DateTime, Integer, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
