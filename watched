@@ -16,7 +16,7 @@
 #    limitations under the License.
 #
 # @author: Juliano Martinez (ncode)
- 
+
 import argparse
 import datetime
 import os
@@ -59,9 +59,9 @@ class Watched(Base):
     count    = Column(Integer)
 
     def __repr__(self):
-        return ("%s | first_time:[%s] last_time:[%s] count:[%s]"
-                 % (self.filename, self.first.ctime(), 
-                    self.last.ctime(), self.count))
+        return ("first_time:[%s] last_time:[%s] count:[%s]\t %s"
+                 % (self.first.ctime(), self.last.ctime(),
+                    self.count, self.filename))
 
 def save(movie):
     now = datetime.datetime.now()
@@ -96,7 +96,7 @@ def find(regex):
 
 
 def last():
-    print(session.query(Watched).order_by(Watched.last).one())
+    print(session.query(Watched).order_by(Watched.last.desc()).first())
 
 
 def check(movie):
@@ -110,13 +110,13 @@ Base.metadata.create_all(engine)
 if __name__ == '__main__':
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("movie", type=str, default="no_movie", 
+    group.add_argument("movie", type=str, default="no_movie",
                        help="movie to be played by mplayer", nargs='?')
-    group.add_argument("-f", "--find", type=str, 
+    group.add_argument("-f", "--find", type=str,
                        help="list watched files based on a given regex")
-    group.add_argument("-s", "--show", action="store_true", 
+    group.add_argument("-s", "--show", action="store_true",
                        help="show all watched files")
-    group.add_argument("-l", "--last", action="store_true", 
+    group.add_argument("-l", "--last", action="store_true",
                        help="show last file watched")
 
     args = parser.parse_args()
