@@ -69,7 +69,7 @@ class Watched(Base):
     count    = Column(Integer)
 
     def __repr__(self):
-        return ("Watched(filename[%s])" % self.filename)
+        return ("Watched(filename[%s],lasttime[%s])" % (self.filename, self.last.ctime()))
 
 
 def save(movie):
@@ -93,8 +93,12 @@ def save(movie):
 
 
 def show():
-    result = session.query(Watched).all()
-    if result: [ print(line) for line in result ]
+    result = session.query(Watched).order_by(Watched.last.desc()).all()
+    for line in result:
+        print("first_time:[%s] last_time:[%s] count:[%s]\t %s" % (
+                line.first.ctime(), line.last.ctime(),
+                line.count, line.filename
+             ))    
 
 
 def find(pattern):
