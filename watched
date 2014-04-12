@@ -25,14 +25,24 @@ import readline
 import sys
 import subprocess
 
+from configparser import ConfigParser
+
 from sqlalchemy import event, create_engine
 from sqlalchemy import Column, DateTime, Integer, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 
+config = ConfigParser()
+home = os.getenv('HOME')
 parser = argparse.ArgumentParser()
 Base   = declarative_base()
+config.read((
+    lambda x: (x if x else '%s/.watched.cfg' % home 
+               if os.path.isfile('%s/.watched.cfg' % home) 
+               else None)
+    )(os.getenv('WATCHED_CONF'))
+)
 
 def re_fn(expr, item):
     reg = re.compile(expr, re.I)
@@ -43,7 +53,7 @@ def _fk_pragma_and_regex_on_connect(dbapi_con, con_record):
     dbapi_con.execute('pragma foreign_keys=ON')
 
 engine = create_engine(
-    '%s:///%s' % ('sqlite', '%s/.watched.sqlite' % os.getenv('HOME'))
+    '%s:///%s' % ('sqlite', config.get('watched', 'database'))
 )
 event.listen(engine, 'connect', _fk_pragma_and_regex_on_connect)
 Session = sessionmaker(bind=engine, autocommit=True, expire_on_commit=False)
@@ -59,9 +69,8 @@ class Watched(Base):
     count    = Column(Integer)
 
     def __repr__(self):
-        return ("first_time:[%s] last_time:[%s] count:[%s]\t %s"
-                 % (self.first.ctime(), self.last.ctime(),
-                    self.count, self.filename))
+        return ("Watched(filename[%s])" % self.filename)
+
 
 def save(movie):
     now = datetime.datetime.now()
@@ -88,21 +97,39 @@ def show():
     if result: [ print(line) for line in result ]
 
 
-def find(regex):
+def find(pattern):
     result = session.query(Watched).filter(
-        Watched.filename.op('regexp')(regex)
-    ).all()
-    if result: [ print(line) for line in result ]
+        Watched.filename.op('regexp')(pattern)
+    ).order_by(Watched.last.desc()).all()
+    return result
 
 
-def last():
-    print(session.query(Watched).order_by(Watched.last.desc()).first())
+def last(pattern=None):
+    print(session.query(Watched).filter(
+            Watched.filename.op('regexp')(pattern)
+          ).order_by(Watched.last.desc()) if pattern else
+          session.query(Watched).order_by(Watched.last.desc()).first())
 
 
 def check(movie):
     return session.query(Watched).filter(
         Watched.filename==movie
     ).first()
+
+
+def play(_file):
+    subprocess.check_call('mplayer "%s"' % _file, shell=True)
+
+
+def play_next(pattern):
+    regex = re.compile(pattern)
+    files = find(pattern)
+    age 
+    for root, dirs, files in os.walk(rpath, topdown=False):                 
+        for name in files:                                                  
+            _file = os.path.join(root, name)
+            if regex.match(name):
+                stat = os.path.stat(_file)
 
 
 Base.metadata.create_all(engine)
@@ -123,7 +150,12 @@ if __name__ == '__main__':
 
     try:
         if args.find:
-            find(args.find)
+            restult = find(args.find)
+            for line in result:
+                print("first_time:[%s] last_time:[%s] count:[%s]\t %s" %
+                        line.first.ctime(), line.last.ctime(),
+                        line.count, line.filename
+                     )                   
         elif args.show:
             show()
         elif args.last:
