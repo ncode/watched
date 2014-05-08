@@ -155,9 +155,9 @@ if __name__ == '__main__':
     try:
         if args.find:
             for line in find(args.find):
-                print("first_time:[%s] last_time:[%s] count:[%s]\t %s" %
-                        line.first.ctime(), line.last.ctime(),
-                        line.count, line.filename
+                print("first_time:[%s] last_time:[%s] count:[%s]\t %s" % (
+                        line.first.ctime(), line.last.ctime(), 
+                        line.count, line.filename)
                      )                   
         elif args.show:
             show()
