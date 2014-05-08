@@ -109,10 +109,10 @@ def find(pattern):
 
 
 def last(pattern=None):
-    print(session.query(Watched).filter(
-            Watched.filename.op('regexp')(pattern)
-          ).order_by(Watched.last.desc()) if pattern else
-          session.query(Watched).order_by(Watched.last.desc()).first())
+    return (session.query(Watched).filter(
+                Watched.filename.op('regexp')(pattern)
+            ).order_by(Watched.last.desc()) if pattern else
+            session.query(Watched).order_by(Watched.last.desc()).first())
 
 
 def check(movie):
@@ -128,12 +128,13 @@ def play(_file):
 def play_next(pattern):
     regex = re.compile(pattern)
     files = find(pattern)
-    age 
+    last_played = last(pattern).last
     for root, dirs, files in os.walk(rpath, topdown=False):                 
         for name in files:                                                  
             _file = os.path.join(root, name)
             if regex.match(name):
                 stat = os.path.stat(_file)
+                print(stats, last_played)
 
 
 Base.metadata.create_all(engine)
@@ -145,10 +146,13 @@ if __name__ == '__main__':
                        help="movie to be played by mplayer", nargs='?')
     group.add_argument("-f", "--find", type=str,
                        help="list watched files based on a given regex")
-    group.add_argument("-s", "--show", action="store_true",
-                       help="show all watched files")
     group.add_argument("-l", "--last", action="store_true",
                        help="show last file watched")
+    group.add_argument("-n", "--next", action="store_true",
+                       help="play next file based on a given regex")
+    group.add_argument("-s", "--show", action="store_true",
+                       help="show all watched files")
+
 
     args = parser.parse_args()
 
@@ -158,13 +162,15 @@ if __name__ == '__main__':
                 print("first_time:[%s] last_time:[%s] count:[%s]\t %s" % (
                         line.first.ctime(), line.last.ctime(), 
                         line.count, line.filename)
-                     )                   
-        elif args.show:
-            show()
+                     )
         elif args.last:
-            last()
+            print(last())                   
         elif args.movie == "no_movie":
             parser.print_help()
+        elif args.next:
+            play_next()
+        elif args.show:
+            show()
         else:
             movie = os.path.basename(args.movie)
             if check(movie):
