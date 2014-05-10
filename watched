@@ -173,9 +173,12 @@ if __name__ == '__main__':
             show()
         else:
             movie = os.path.basename(args.movie)
+            if not os.path.isfile(movie):
+                print("File not found: %s" % movie)
+                sys.exit(2)
             if check(movie):
                 print("You already whatched this file")
-                ipt = input("Do you want to watch again? (y|n) ")
+                ipt = input("Do you want to watch again? (y|N) ")
                 if ipt != "y":
                     sys.exit(0)
 
