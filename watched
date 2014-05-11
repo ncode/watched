@@ -165,15 +165,15 @@ if __name__ == '__main__':
                      )
         elif args.last:
             print(last())                   
-        elif args.movie == "no_movie":
-            parser.print_help()
         elif args.next:
             play_next()
         elif args.show:
             show()
+        elif args.movie == "no_movie":
+            parser.print_help()
         else:
             movie = os.path.basename(args.movie)
-            if not os.path.isfile(movie):
+            if not os.path.isfile(args.movie):
                 print("File not found: %s" % movie)
                 sys.exit(2)
             if check(movie):
@@ -182,8 +182,8 @@ if __name__ == '__main__':
                 if ipt != "y":
                     sys.exit(0)
 
-            save(args.movie)
-            subprocess.check_call('mplayer "%s"' % movie, shell=True)
+            save(movie)
+            subprocess.check_call('mplayer "%s"' % args.movie, shell=True)
     except NoResultFound:
         pass
 
