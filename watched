@@ -186,6 +186,9 @@ if __name__ == '__main__':
             subprocess.check_call('mplayer "%s"' % args.movie, shell=True)
     except NoResultFound:
         pass
+    except BrokenPipeError:
+        """Avoiding exceptions when piping on shell""" 
+        pass
 
     sys.exit(0)
 
